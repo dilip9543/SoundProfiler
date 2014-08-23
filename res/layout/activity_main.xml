@@ -26,16 +26,6 @@
         android:layout_toRightOf="@+id/textView1"
         android:ems="10" />
 
-    <Button
-        android:id="@+id/button1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/TextView01"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="50dp"
-        android:layout_marginLeft="85dp"
-        android:text="Submit" />
-
     <EditText
         android:id="@+id/dateOfBirth"
         android:layout_width="wrap_content"
@@ -65,5 +55,26 @@
         android:layout_below="@+id/dateOfBirth"
         android:layout_marginTop="70dp"
         android:src="@android:drawable/title_bar" />
+
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/captcha"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="82dp"
+        android:text="Submit" />
+
+    <EditText
+        android:id="@+id/captchaText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/captcha"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="22dp"
+        android:ems="10" >
+
+        <requestFocus />
+    </EditText>
 
 </RelativeLayout>

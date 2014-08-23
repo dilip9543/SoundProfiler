@@ -1,19 +1,29 @@
 package com.example.soundprofiler;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import javax.net.ssl.HttpsURLConnection;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import android.content.Context;
 import android.os.Environment;
@@ -35,59 +45,64 @@ public class GetPageContent
 	}
 	public String makeConnection(String url)
 	{
-		int responseCode;
-		URL obj;
-		BufferedReader in;
-		String inputLine;
-		StringBuffer response;
 		try
 		{
-			obj = new URL(url);
-			conn = (HttpsURLConnection) obj.openConnection();
-			// default is GET
-			conn.setRequestMethod("GET");
-			conn.setUseCaches(false);
-			// act like a browser
-			conn.setRequestProperty("User-Agent", USER_AGENT);
-			conn.setRequestProperty("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-			conn.setRequestProperty("Accept-Language", "en-US,en;q=0.8");
-			if (cookies != null) 
-			{
-				for (String cookie : this.cookies)
-				{
-					conn.addRequestProperty("Cookie",
-											cookie.split(";", 1)[0]);
-				}
+		URL obj = new URL(url);
+		conn = (HttpsURLConnection) obj.openConnection();
+
+		
+		// default is GET
+		conn.setRequestMethod("GET");
+	 
+		conn.setUseCaches(false);
+	 
+		// act like a browser
+		conn.setRequestProperty("User-Agent", USER_AGENT);
+		conn.setRequestProperty("Accept",
+			"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+		conn.setRequestProperty("Accept-Language", "en-US,en;q=0.8");
+		if (cookies != null) 
+		{
+			for (String cookie : this.cookies) {
+				conn.addRequestProperty("Cookie", cookie.split(";", 1)[0]);
 			}
-			responseCode = conn.getResponseCode();
-			Log.i(TAG,"\nSending 'GET' request to URL : " + url);
-			Log.i(TAG,"Response Code : " + responseCode);
-			Log.i(TAG,"Fetching page");
-			//getting the input stream and reading frm it
-			in = new BufferedReader(new InputStreamReader
-										(conn.getInputStream()));
-			
-			response = new StringBuffer();
-			//storing the content received from input stream into a string
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-			Log.i(TAG,"page fetched");
-			in.close();
-			setCookies(conn.getHeaderFields().get("Set-Cookie"));
-			//return the string of contents 
-			return response.toString();
+		}
+		int responseCode = conn.getResponseCode();
+		System.out.println("\nSending 'GET' request to URL : " + url);
+		System.out.println("Response Code : " + responseCode);
+		System.out.println("Fetching page");
+		//getting the input stream and reading frm it
+		BufferedReader in = 
+							new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		String inputLine;
+		StringBuffer response = new StringBuffer();
+		//storing the content received from input stream into a string
+		while ((inputLine = in.readLine()) != null) {
+			response.append(inputLine);
+		}
+		System.out.println("page fetched");
+		in.close();
+		setCookies(conn.getHeaderFields().get("Set-Cookie"));
+		//return the string of contents 
+		return response.toString();
 		}
 		catch(MalformedURLException e)
 		{
-			Log.e(TAG,"Please Enter the Write Url");
+			System.out.println("Please Enter the Write Url");
+			e.printStackTrace();
 			return "-1";
 		}
 		catch(IOException e)
 		{
-			Log.e(TAG,"Couldnt Open the Stream");
+			System.out.println("Couldnt Open the Stream");
+			e.printStackTrace();
 			return "-1";
 		}
+	}
+	public String asString(String url)
+	{
+		return makeConnection(url);
+		
 	}
 	public void setCookies(List<String> cookies)
 	{
@@ -151,7 +166,122 @@ public class GetPageContent
 			return -1;
 		}
 	}
+	public void sendPost(String url, String postParams) throws Exception
+	{
+		  
+			URL obj = new URL(url);
+			conn = (HttpsURLConnection) obj.openConnection();
+		 
+			// Acts like a browser
+			conn.setUseCaches(false);
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Host","academics.vit.ac.in");
+			conn.setRequestProperty("User-Agent", USER_AGENT);
+			conn.setRequestProperty("Accept",
+				"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+			conn.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+			conn.setRequestProperty("Connection", "keep-alive");
+			conn.setRequestProperty("Referer", "https://academics.vit.ac.in/parent/parent_login.asp");
+			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+			//conn.setRequestProperty("Content-Length", Integer.toString(postParams.length()));
+		 
+		
+			conn.setDoOutput(true);
+			conn.setDoInput(true);
+		 
+			// Send post request
+			DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+			wr.writeBytes(postParams);
+			wr.flush();
+			wr.close();
+		 
+			int responseCode = conn.getResponseCode();
+			System.out.println("\nSending 'POST' request to URL : " + url);
+			System.out.println("Post parameters : " + postParams);
+			System.out.println("Response Code : " + responseCode);
+		 
+			BufferedReader in = 
+		             new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String inputLine;
+			StringBuffer response = new StringBuffer();
+		 
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+			Log.i(TAG,response.toString());
+}
+	
+	
+	
+	
+	
+	public String getFormParams(String html, String username, String password,String captcha)
+			throws UnsupportedEncodingException
+	{
+	 
+			System.out.println("Extracting form's data...");
+			Document doc = Jsoup.parse(html);
+			//getting the element with tag form ..this site has only one form element
+			Elements loginformList = doc.getElementsByTag("form");
+			
+			Element loginform=null;
+			//looping over the forms obtained to get the form with form name attribute as parent_login
+			for(Element a:loginformList)
+			{
+				String key=a.attr("name");
+				if(key.equals("parent_login"))
+				{
+					//if form name is equal to parent login we store that form element in the login form 
+					loginform=a;
+				
+				}
+			}
+			//now extracting individual contents of the form i.e tags of type input
+			Elements inputElements = loginform.getElementsByTag("input");
+			List<String> paramList = new ArrayList<String>();
+			for (Element inputElement : inputElements)
+			{
+				String key = inputElement.attr("name");
+				String value = inputElement.attr("value");
+				//wdregno is the name of the input element
+				if (key.equals("wdregno"))
+					value = username;
+				//wdpswd if the name of password field in the form
+				else if (key.equals("wdpswd"))
+					value = password;
+				//vrfcd is the name of captcha field in the form
+				else if (key.equals("vrfcd"))
+					value=captcha;
+				//on observing the post url these two were not used so skipping
+				else if(value.equals("Login")||value.equals("Reset"))
+					continue;
+				//creating the post url
+				paramList.add(key + "=" + URLEncoder.encode(value, "UTF-8"));
+			}
 
+			// build parameters list
+			StringBuilder result = new StringBuilder();
+			for (String param : paramList)
+			{
+				if (result.length() == 0)
+				{
+					result.append(param);
+				}
+				else
+				{
+					//appending an & as it was seen the url uses this separator as terminating character
+					result.append("&" + param);
+				}
+			}
+			System.out.println("Actual param list "+result);
+			//System.out.println(result.substring(0, result.lastIndexOf("&")));
+			//String s=result.substring(0, result.lastIndexOf("&"));
+			//return the parameters list
+			return result.toString();
+	}
+	 
+	
 
 
 

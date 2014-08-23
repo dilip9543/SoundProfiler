@@ -1,12 +1,13 @@
 package com.example.soundprofiler;
 
-import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -24,8 +25,11 @@ public class MainActivity extends Activity {
 	final String TAG="Main-Activity";
 	EditText registration=null;
 	EditText dob=null;
+	GetPageContent http;
+	EditText captchaText=null;
 	Button submit=null;
 	ImageView captcha=null;
+	String loginPage;
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -33,15 +37,20 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 		registration=(EditText)findViewById(R.id.registrationNumber);
 		dob=(EditText)findViewById(R.id.dateOfBirth);
+		captchaText=(EditText)findViewById(R.id.captchaText);
 		submit=(Button)findViewById(R.id.button1);
 		captcha=(ImageView)findViewById(R.id.captcha);
+		http=new GetPageContent(this);
+		
+		new DownloadCaptchaASync().execute();
 		submit.setOnClickListener(new OnClickListener()
 		{
 			@Override
 			public void onClick(View v)
 			{
-				Log.i(TAG,"I'll Start Downloading Captcha");
-				new DownloadCaptchaASync().execute();
+				Log.i(TAG,"I'll Start Submitting Request");
+				new SubmitRequestASync().execute("Login");
+				new SubmitRequestASync().execute("TimeTable");
 			}
 		
 		});
@@ -55,41 +64,111 @@ public class MainActivity extends Activity {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-class SubmitRequestASync extends AsyncTask<Void,Void,Integer>
+class SubmitRequestASync extends AsyncTask<String,Void,Integer>
 {
+	String registrationNumber;
+	String dateOfBirth;
+	String captchaText;
+	String page1;
+	String timeTable[]=new String[15];
+	GetPageContent http1;
+	int shouldILoadNewActivity=0;
+	String urlForTimeTable="https://academics.vit.ac.in/parent/timetable.asp?sem=";
+	String urlForPostSubmit="https://academics.vit.ac.in/parent/parent_login_submit.asp";
+	String parentLoginUrl="https://academics.vit.ac.in/parent/parent_login.asp";
+	
+	public String constructTimeTableParameter()
+	{
+		
+		
+		return "FS";
+		
+	}
+	
+	
 	@Override
 	protected void onPreExecute()
 	{
+			
+		
 		//get registration number and date of birth
-	
-	
+		registrationNumber=registration.getText().toString();
+		dateOfBirth=dob.getText().toString();
+		captchaText=MainActivity.this.captchaText.getText().toString();
+		Log.i(TAG, "parameters are "+registrationNumber+" "+dateOfBirth+" "+captchaText);
+		
 	}
 
-
 	@Override
-	protected Integer doInBackground(Void... arg0)
+	protected Integer doInBackground(String... whatToDownload)
 	{
+		try
+		{
+			//GetPageContent http = new GetPageContent(getApplicationContext());
+			if(whatToDownload[0].contentEquals("Login"))
+			{
+				String postParams = http.getFormParams(loginPage, registrationNumber, dateOfBirth,captchaText);
+				http.sendPost(urlForPostSubmit, postParams);
+			}
+			if(whatToDownload[0].contentEquals("TimeTable"))
+			{
+				
+				String timetable=http.asString(urlForTimeTable+constructTimeTableParameter());
+				ProcessTimeTable timeTableProcessor=new ProcessTimeTable();
+				timeTable=timeTableProcessor.generateData(timetable);
+				shouldILoadNewActivity=1;
+			}
+			return 1;
+		
+		
+		} 
+		catch (UnsupportedEncodingException e)
+		{
+			// TODO Auto-generated catch block
+			Log.i(TAG,"Sorry man wrong encoding");
+			return -1;
+		}
+		catch (Exception e) 
+		{
+			// TODO Auto-generated catch block
+			Log.i(TAG,"Sorry man ran into trouble"+e.getMessage());
+			return -1;
+		}
+		
 		// TODO Auto-generated method stub
 		//submitrequest and return the status that whether timetable was fetched or not
 		
 		
-		return null;
+		
 	
 	
 	
 	}
-	
-	
-	
-	
+	@Override
+	protected void onPostExecute(Integer result)
+	{
+		Log.i(TAG,"Successfully submitted request");
+		if(shouldILoadNewActivity==1)
+		{
+			Intent newActivity=new Intent(getApplicationContext(),SlotActivity.class);
+			newActivity.putExtra("slots", timeTable);
+			startActivity(newActivity);
+			Log.i(TAG,"on Post Execute of Timetable");
+		}
+		
+	}
+
+
 	
 	
 }
 
 class DownloadCaptchaASync extends AsyncTask<Void,Void,Integer> 
 {
-	String baseUrlCaptcha="https://academics.vit.ac.in/student/captcha.asp";
+	String baseUrlCaptcha="https://academics.vit.ac.in/parent/captcha.asp";
 	final String TAG="Captcha-Async";
+	
+	
 	@Override
 	protected void onPreExecute()
 	{
@@ -99,6 +178,7 @@ class DownloadCaptchaASync extends AsyncTask<Void,Void,Integer>
 	}
 	private String constructCaptchaUrl()
 	{
+		loginPage=http.asString("https://academics.vit.ac.in/parent/parent_login.asp");
 		String url=baseUrlCaptcha;
 		String displayDate;
 		DateFormat df;
@@ -121,8 +201,8 @@ class DownloadCaptchaASync extends AsyncTask<Void,Void,Integer>
 	protected Integer doInBackground(Void... params)
 	{
 		
-		GetPageContent downloaderClass=new GetPageContent(getApplicationContext());
-		downloaderClass.downloadCaptcha(constructCaptchaUrl(),"captcha.bmp");
+		//GetPageContent downloaderClass=new GetPageContent(getApplicationContext());
+		http.downloadCaptcha(constructCaptchaUrl(),"captcha.bmp");
 		return 1;
 			
 		// TODO Auto-generated method stub
