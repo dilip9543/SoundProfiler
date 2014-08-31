@@ -20,39 +20,24 @@ import android.widget.Toast;
 
 public class SlotActivity extends Activity
 {
+	SlotTimingHolder slotTiming;
+	private AlarmCalculation calculator;
 	private AlarmManager mAlarmManager;
 	private Intent mNotificationReceiverIntent, mLoggerReceiverIntent;
 	private PendingIntent mNotificationReceiverPendingIntent,
 			mLoggerReceiverPendingIntent;
-	private static final long INITIAL_ALARM_DELAY =1000L;
-	protected static final long JITTER = 5000L;
-
+	
+	
+	String[] timeTable;
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.slotactivity);
-		String[] timeTable=getIntent().getStringArrayExtra("slots");
+		timeTable=getIntent().getStringArrayExtra("slots");
 		TextView slotText=(TextView)findViewById(R.id.slot);
 		String slotString="";
 		SlotTimingHolder s=new SlotTimingHolder();
-		for(String slot : timeTable)
-		{
-					slotString+="\n "+slot;
-					int i=0;
-					if(slot!=null&&!slot.contains("NIL"))
-					{
-						Log.i("Tesring Slot ","Slot is "+slot);
-						List<Integer> ques= s.fetchTime(slot);
-						for(int a: ques)
-						{
-						
-							if(a>0)
-								Log.i("Testing SlotTiming","Alarm will go on on dayIndex "+i+1+" time is "+a);
-							i++;
-						}
-					}
-		}
 		slotText.setText(slotString);
 		mAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
 		mNotificationReceiverIntent = new Intent(SlotActivity.this,
@@ -65,20 +50,49 @@ public class SlotActivity extends Activity
 				repeatingAlarmButton.setOnClickListener(new OnClickListener() {
 
 					@Override
-					public void onClick(View v) {
-						mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
-								SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
-								1000*30L,
-								mNotificationReceiverPendingIntent);
-
+					public void onClick(View v) 
+					{
+						createAlarm();
 						Toast.makeText(getApplicationContext(), "Repeating Alarm Set",
 								Toast.LENGTH_LONG).show();
 					}
 				});
 
 	}
-
-
+	 public void createAlarm()
+	 {
+		    calculator=new AlarmCalculation();
+	    	slotTiming=new SlotTimingHolder();
+	    	for(String slot:timeTable)
+	    	{
+	    		if(slot!=null&&!slot.contentEquals("NIL"))
+	    		{
+	    			List<Integer> slotWeekList= slotTiming.fetchTime(slot);
+	    			int i=0;
+	    			for(int hourOfTheDay: slotWeekList)
+	    			{
+	    				//>0 if that slot exists on that day
+	    				if(hourOfTheDay>0)
+	    				{
+	    					Log.i("Testing SlotTiming","Alarm will go on on dayIndex "+i+1+" time is "+hourOfTheDay);
+	    				
+	    					mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+	    						calculator.getTimeInMilliSec(hourOfTheDay,0),
+	    						calculator.weekInterval(),
+								mNotificationReceiverPendingIntent);
+	    					mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+	    						calculator.getTimeInMilliSec(hourOfTheDay,0),
+	    						calculator.weekInterval()+50*60L*1000L,
+								mNotificationReceiverPendingIntent);
+	    			
+	    				}
+	    				i++;
+	    			}
+	    		}
+	    	}
+	    	
+	    	
+	    }
 
 
 
